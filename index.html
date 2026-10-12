@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" x-data="wfhTracker()" x-init="init()">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WFH Tracker - Hybrid Work & Compliance Log</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class'
+    }
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.10/dist/cdn.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen font-sans antialiased pb-12 transition-colors duration-200">
+
+  <!-- Header -->
+  <header class="bg-indigo-600 dark:bg-indigo-900 text-white py-6 shadow-md mb-6 transition-colors duration-200">
+    <div class="max-w-5xl mx-auto px-4 flex justify-between items-center">
+      <div class="flex items-center space-x-3">
+        <i data-lucide="building-2" class="w-8 h-8"></i>
+        <div>
+          <h1 class="text-2xl font-bold tracking-tight">WFH Tracker</h1>
+          <p class="text-xs text-indigo-200 font-medium">Hybrid Attendance & Compliance Manager</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-2">
+        <button 
+          @click="toggleDarkMode()" 
+          class="p-2 bg-indigo-500 hover:bg-indigo-700 dark:bg-indigo-800 dark:hover:bg-indigo-700 text-white rounded-lg transition flex items-center justify-center"
+          :title="darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+        >
+          <i x-show="!darkMode" data-lucide="moon" class="w-4 h-4"></i>
+          <i x-show="darkMode" x-cloak data-lucide="sun" class="w-4 h-4"></i>
+        </button>
+
+        <button @click="resetMonth()" class="text-xs bg-indigo-500 hover:bg-indigo-700 dark:bg-indigo-800 dark:hover:bg-indigo-700 text-white py-2 px-3 rounded-lg transition flex items-center gap-1 font-medium">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Month
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 space-y-6">
+
+    <!-- Month Navigation & Top Controls -->
+    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <button @click="prevMonth()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          <i data-lucide="chevron-left" class="w-5 h-5 text-slate-600 dark:text-slate-300"></i>
+        </button>
+        <h2 class="text-xl font-bold text-slate-900 dark:text-white min-w-[180px] text-center" x-text="monthYearLabel"></h2>
+        <button @click="nextMonth()" class="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition">
+          <i data-lucide="chevron-right" class="w-5 h-5 text-slate-600 dark:text-slate-300"></i>
+        </button>
+      </div>
+
+      <!-- Compliance Policy Settings -->
+      <div class="flex items-center gap-2 text-xs font-semibold bg-slate-50 dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700">
+        <i data-lucide="shield-check" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+        <span class="text-slate-600 dark:text-slate-400">Target Policy:</span>
+        <span class="text-indigo-600 dark:text-indigo-400 font-bold">60% Office Presence</span>
+      </div>
+    </div>
+
+    <!-- Metrics Breakdown Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+      <!-- Total Business Days -->
+      <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <p class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Business Days</p>
+        <p class="text-xl font-extrabold text-slate-900 dark:text-white mt-1" x-text="metrics.totalBusinessDays"></p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Mon–Fri Excl. Weekend</p>
+      </div>
+
+      <!-- Bank Holidays -->
+      <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <p class="text-[11px] font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Holidays</p>
+        <p class="text-xl font-extrabold text-amber-600 dark:text-amber-400 mt-1" x-text="metrics.bankHolidays"></p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Bank/Public Holidays</p>
+      </div>
+
+      <!-- PTO Taken -->
+      <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <p class="text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">PTO Days</p>
+        <p class="text-xl font-extrabold text-purple-600 dark:text-purple-400 mt-1" x-text="metrics.ptoDays"></p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Vacation & Personal</p>
+      </div>
+
+      <!-- Sick Days -->
+      <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+        <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Sick Days</p>
+        <p class="text-xl font-extrabold text-rose-600 dark:text-rose-400 mt-1" x-text="metrics.sickDays"></p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Medical / Time Off</p>
+      </div>
+
+      <!-- Required Office Days -->
+      <div class="bg-indigo-50 dark:bg-slate-800/80 p-3.5 rounded-xl border border-indigo-200 dark:border-indigo-800 shadow-sm">
+        <p class="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">Required Office</p>
+        <p class="text-xl font-extrabold text-indigo-700 dark:text-indigo-300 mt-1" x-text="metrics.requiredOfficeDays"></p>
+        <p class="text-[10px] text-indigo-500/80 dark:text-indigo-400/80 mt-0.5">60% of Net Working Days</p>
+      </div>
+
+      <!-- Actual Office Days Logging Status -->
+      <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm"
+        :class="metrics.actualOfficeDays >= metrics.requiredOfficeDays ? 'border-l-4 border-l-emerald-500' : 'border-l-4 border-l-amber-500'">
+        <p class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Actual Office</p>
+        <p class="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1" x-text="metrics.actualOfficeDays"></p>
+        <p class="text-[10px] font-medium mt-0.5" 
+           :class="metrics.actualOfficeDays >= metrics.requiredOfficeDays ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'"
+           x-text="metrics.actualOfficeDays >= metrics.requiredOfficeDays ? 'Target Met ✓' : (metrics.requiredOfficeDays - metrics.actualOfficeDays) + ' days remaining'">
+        </p>
+      </div>
+    </div>
+
+    <!-- Formula Detail Banner -->
+    <div class="bg-slate-100 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 font-medium">
+        <i data-lucide="calculator" class="w-4 h-4 text-indigo-600 dark:text-indigo-400"></i>
+        <span>Formula: </span>
+        <code class="bg-white dark:bg-slate-900 px-2 py-0.5 rounded text-indigo-600 dark:text-indigo-300 font-mono text-[11px]">
+          60% × (Total Business Days [<span x-text="metrics.totalBusinessDays"></span>] - PTO [<span x-text="metrics.ptoDays"></span>] - Holidays [<span x-text="metrics.bankHolidays"></span>])
+        </code>
+      </div>
+      <div class="text-[11px] font-semibold text-slate-500">
+        Net Base = <span class="text-slate-800 dark:text-slate-200" x-text="metrics.netWorkingDays"></span> days
+      </div>
+    </div>
+
+    <!-- Legend & Quick Marker Controls -->
+    <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-3">
+      <div class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Select Mark Mode (Click a day on calendar to set status):</div>
+      <div class="flex flex-wrap gap-2">
+        <button @click="activeStatus = 'OFFICE'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'OFFICE' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Office Day
+        </button>
+        <button @click="activeStatus = 'WFH'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'WFH' ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block"></span> WFH
+        </button>
+        <button @click="activeStatus = 'PTO'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'PTO' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> PTO / Vacation
+        </button>
+        <button @click="activeStatus = 'SICK'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'SICK' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Sick Day
+        </button>
+        <button @click="activeStatus = 'HOLIDAY'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'HOLIDAY' ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Bank Holiday
+        </button>
+        <button @click="activeStatus = 'NONE'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'NONE' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-slate-300 inline-block"></span> Clear Day
+        </button>
+      </div>
+    </div>
+
+    <!-- Interactive Calendar Grid -->
+    <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 space-y-4">
+      
+      <!-- Day Headers -->
+      <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <span>Sun</span>
+        <span>Mon</span>
+        <span>Tue</span>
+        <span>Wed</span>
+        <span>Thu</span>
+        <span>Fri</span>
+        <span>Sat</span>
+      </div>
+
+      <!-- Days Grid -->
+      <div class="grid grid-cols-7 gap-2">
+        <template x-for="day in calendarDays" :key="day.dateStr">
+          <div 
+            @click="day.isCurrentMonth && setDayStatus(day.dateStr)"
+            class="min-h-[72px] sm:min-h-[84px] p-2 rounded-xl border text-left transition flex flex-col justify-between relative group"
+            :class="{
+              'cursor-pointer hover:border-indigo-400': day.isCurrentMonth,
+              'opacity-30 bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800 cursor-not-allowed': !day.isCurrentMonth,
+              'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700': day.isCurrentMonth && !day.status,
+              'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800': day.status === 'OFFICE',
+              'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-800': day.status === 'WFH',
+              'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800': day.status === 'PTO',
+              'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800': day.status === 'SICK',
+              'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800': day.status === 'HOLIDAY',
+              'ring-2 ring-indigo-500 font-bold': day.isToday
+            }"
+          >
+            <!-- Day Number & Indicators -->
+            <div class="flex justify-between items-start">
+              <span class="text-xs sm:text-sm font-semibold" 
+                    :class="day.isWeekend ? 'text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'"
+                    x-text="day.dayNumber"></span>
+              
+              <template x-if="day.isToday">
+                <span class="text-[9px] bg-indigo-600 text-white font-bold px-1.5 py-0.5 rounded-full">TODAY</span>
+              </template>
+            </div>
+
+            <!-- Status Label Tag -->
+            <div class="mt-1">
+              <template x-if="day.status === 'OFFICE'">
+                <span class="inline-block text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded-md">Office</span>
+              </template>
+              <template x-if="day.status === 'WFH'">
+                <span class="inline-block text-[10px] font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/60 px-1.5 py-0.5 rounded-md">WFH</span>
+              </template>
+              <template x-if="day.status === 'PTO'">
+                <span class="inline-block text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 rounded-md">PTO</span>
+              </template>
+              <template x-if="day.status === 'SICK'">
+                <span class="inline-block text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded-md">Sick</span>
+              </template>
+              <template x-if="day.status === 'HOLIDAY'">
+                <span class="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded-md truncate max-w-full" x-text="day.holidayName || 'Holiday'"></span>
+              </template>
+            </div>
+
+            <span x-show="day.isCurrentMonth && !day.isWeekend && !day.status" 
+                  class="text-[9px] text-slate-300 dark:text-slate-600 group-hover:text-slate-400">Click to mark</span>
+          </div>
+        </template>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+
+    // US Standard Bank Holidays database
+    const US_BANK_HOLIDAYS = {
+      "2026-01-01": "New Year's Day",
+      "2026-01-19": "MLK Jr. Day",
+      "2026-02-16": "Presidents' Day",
+      "2026-05-25": "Memorial Day",
+      "2026-06-19": "Juneteenth",
+      "2026-07-03": "Independence Day",
+      "2026-09-07": "Labor Day",
+      "2026-10-12": "Columbus Day",
+      "2026-11-11": "Veterans Day",
+      "2026-11-26": "Thanksgiving Day",
+      "2026-12-25": "Christmas Day"
+    };
+
+    function wfhTracker() {
+      return {
+        darkMode: localStorage.getItem('wfh_darkMode') === 'true',
+        currentYear: 2026,
+        currentMonth: 9, // 0 = Jan, 9 = Oct
+        activeStatus: 'OFFICE',
+        dayLogs: JSON.parse(localStorage.getItem('wfh_dayLogs')) || {},
+
+        init() {
+          const now = new Date();
+          this.currentYear = now.getFullYear();
+          this.currentMonth = now.getMonth();
+
+          this.$watch('darkMode', val => localStorage.setItem('wfh_darkMode', val));
+          this.$watch('dayLogs', val => localStorage.setItem('wfh_dayLogs', JSON.stringify(val)));
+          
+          this.refreshIcons();
+        },
+
+        toggleDarkMode() {
+          this.darkMode = !this.darkMode;
+          this.refreshIcons();
+        },
+
+        prevMonth() {
+          if (this.currentMonth === 0) {
+            this.currentMonth = 11;
+            this.currentYear--;
+          } else {
+            this.currentMonth--;
+          }
+          this.refreshIcons();
+        },
+
+        nextMonth() {
+          if (this.currentMonth === 11) {
+            this.currentMonth = 0;
+            this.currentYear++;
+          } else {
+            this.currentMonth++;
+          }
+          this.refreshIcons();
+        },
+
+        resetMonth() {
+          if (confirm(`Are you sure you want to clear all logged days for ${this.monthYearLabel}?`)) {
+            const days = this.getDaysInMonth(this.currentYear, this.currentMonth);
+            days.forEach(d => {
+              const dateStr = this.formatDateStr(d);
+              delete this.dayLogs[dateStr];
+            });
+            this.refreshIcons();
+          }
+        },
+
+        setDayStatus(dateStr) {
+          if (this.activeStatus === 'NONE') {
+            delete this.dayLogs[dateStr];
+          } else {
+            this.dayLogs[dateStr] = {
+              status: this.activeStatus
+            };
+          }
+          this.refreshIcons();
+        },
+
+        get monthYearLabel() {
+          const date = new Date(this.currentYear, this.currentMonth, 1);
+          return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+        },
+
+        get calendarDays() {
+          const year = this.currentYear;
+          const month = this.currentMonth;
+
+          const firstDayOfMonth = new Date(year, month, 1).getDay();
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+          const todayStr = this.formatDateStr(new Date());
+          const days = [];
+
+          // Previous Month Fillers
+          for (let i = firstDayOfMonth - 1; i >= 0; i--) {
+            const pDay = daysInPrevMonth - i;
+            const pDate = new Date(year, month - 1, pDay);
+            const dateStr = this.formatDateStr(pDate);
+            days.push({
+              dateStr,
+              dayNumber: pDay,
+              isCurrentMonth: false,
+              isWeekend: pDate.getDay() === 0 || pDate.getDay() === 6,
+              status: null
+            });
+          }
+
+          // Current Month Days
+          for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(year, month, d);
+            const dateStr = this.formatDateStr(date);
+            const dayOfWeek = date.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+            let status = this.dayLogs[dateStr]?.status || null;
+            let holidayName = US_BANK_HOLIDAYS[dateStr] || null;
+
+            // Auto assign Bank Holiday if not explicitly overridden and not weekend
+            if (!status && holidayName && !isWeekend) {
+              status = 'HOLIDAY';
+            }
+
+            days.push({
+              dateStr,
+              dayNumber: d,
+              isCurrentMonth: true,
+              isWeekend,
+              isToday: dateStr === todayStr,
+              status,
+              holidayName
+            });
+          }
+
+          // Next Month Fillers
+          const totalCells = days.length;
+          const remainingCells = (42 - totalCells) % 7;
+          for (let n = 1; n <= remainingCells; n++) {
+            const nDate = new Date(year, month + 1, n);
+            const dateStr = this.formatDateStr(nDate);
+            days.push({
+              dateStr,
+              dayNumber: n,
+              isCurrentMonth: false,
+              isWeekend: nDate.getDay() === 0 || nDate.getDay() === 6,
+              status: null
+            });
+          }
+
+          return days;
+        },
+
+        get metrics() {
+          const daysInMonth = new Date(this.currentYear, this.currentMonth + 1, 0).getDate();
+          let totalBusinessDays = 0;
+          let bankHolidays = 0;
+          let ptoDays = 0;
+          let sickDays = 0;
+          let actualOfficeDays = 0;
+
+          for (let d = 1; d <= daysInMonth; d++) {
+            const date = new Date(this.currentYear, this.currentMonth, d);
+            const dayOfWeek = date.getDay();
+            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+            const dateStr = this.formatDateStr(date);
+
+            if (!isWeekend) {
+              totalBusinessDays++;
+
+              const log = this.dayLogs[dateStr];
+              const isDefaultHoliday = !!US_BANK_HOLIDAYS[dateStr];
+
+              if (log?.status === 'OFFICE') {
+                actualOfficeDays++;
+              } else if (log?.status === 'PTO') {
+                ptoDays++;
+              } else if (log?.status === 'SICK') {
+                sickDays++;
+              } else if (log?.status === 'HOLIDAY' || (!log && isDefaultHoliday)) {
+                bankHolidays++;
+              }
+            }
+          }
+
+          // Formula: 60% of (total business days - PTOs - bank business holidays)
+          const netWorkingDays = Math.max(0, totalBusinessDays - ptoDays - bankHolidays);
+          const requiredOfficeDays = Math.ceil(0.60 * netWorkingDays);
+
+          return {
+            totalBusinessDays,
+            bankHolidays,
+            ptoDays,
+            sickDays,
+            netWorkingDays,
+            requiredOfficeDays,
+            actualOfficeDays
+          };
+        },
+
+        formatDateStr(date) {
+          const y = date.getFullYear();
+          const m = String(date.getMonth() + 1).padStart(2, '0');
+          const d = String(date.getDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        },
+
+        getDaysInMonth(year, month) {
+          const count = new Date(year, month + 1, 0).getDate();
+          const days = [];
+          for (let i = 1; i <= count; i++) {
+            days.push(new Date(year, month, i));
+          }
+          return days;
+        },
+
+        refreshIcons() {
+          this.$nextTick(() => {
+            lucide.createIcons();
+          });
+        }
+      };
+    }
+  </script>
+</body>
+</html>
