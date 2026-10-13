@@ -88,14 +88,14 @@
       <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <p class="text-[11px] font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wider">PTO Days</p>
         <p class="text-xl font-extrabold text-purple-600 dark:text-purple-400 mt-1" x-text="metrics.ptoDays"></p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Vacation & Personal</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Vacation & Half PTOs</p>
       </div>
 
       <!-- Sick Days -->
       <div class="bg-white dark:bg-slate-800 p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
         <p class="text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider">Sick Days</p>
         <p class="text-xl font-extrabold text-rose-600 dark:text-rose-400 mt-1" x-text="metrics.sickDays"></p>
-        <p class="text-[10px] text-slate-400 mt-0.5">Medical Time Off</p>
+        <p class="text-[10px] text-slate-400 mt-0.5">Medical & Half Sicks</p>
       </div>
 
       <!-- Required Office Days -->
@@ -144,15 +144,23 @@
         </button>
         <button @click="activeStatus = 'PTO'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
           :class="activeStatus === 'PTO' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
-          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> PTO / Vacation
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> Full PTO
+        </button>
+        <button @click="activeStatus = 'HALF_PTO'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'HALF_PTO' ? 'bg-violet-600 text-white border-violet-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-violet-400 inline-block"></span> Half PTO (0.5)
         </button>
         <button @click="activeStatus = 'SICK'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
           :class="activeStatus === 'SICK' ? 'bg-rose-600 text-white border-rose-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
-          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Sick Day
+          <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Full Sick Day
+        </button>
+        <button @click="activeStatus = 'HALF_SICK'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
+          :class="activeStatus === 'HALF_SICK' ? 'bg-pink-600 text-white border-pink-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
+          <span class="w-2.5 h-2.5 rounded-full bg-pink-400 inline-block"></span> Half Sick (0.5)
         </button>
         <button @click="activeStatus = 'HOLIDAY'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
           :class="activeStatus === 'HOLIDAY' ? 'bg-amber-600 text-white border-amber-600 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
-          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Market / Bank Holiday
+          <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> Market Holiday
         </button>
         <button @click="activeStatus = 'NONE'" class="px-3 py-1.5 rounded-xl text-xs font-semibold border transition flex items-center gap-1.5"
           :class="activeStatus === 'NONE' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-600'">
@@ -187,7 +195,9 @@
               'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700': day.isCurrentMonth && !day.status,
               'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800': day.status === 'OFFICE',
               'bg-purple-50 dark:bg-purple-950/40 border-purple-300 dark:border-purple-800': day.status === 'PTO',
+              'bg-violet-50 dark:bg-violet-950/40 border-violet-300 dark:border-violet-800': day.status === 'HALF_PTO',
               'bg-rose-50 dark:bg-rose-950/40 border-rose-300 dark:border-rose-800': day.status === 'SICK',
+              'bg-pink-50 dark:bg-pink-950/40 border-pink-300 dark:border-pink-800': day.status === 'HALF_SICK',
               'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800': day.status === 'HOLIDAY',
               'ring-2 ring-indigo-500 font-bold': day.isToday
             }"
@@ -209,10 +219,16 @@
                 <span class="inline-block text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-900/60 px-1.5 py-0.5 rounded-md">In Office</span>
               </template>
               <template x-if="day.status === 'PTO'">
-                <span class="inline-block text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 rounded-md">PTO</span>
+                <span class="inline-block text-[10px] font-bold text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900/60 px-1.5 py-0.5 rounded-md">Full PTO</span>
+              </template>
+              <template x-if="day.status === 'HALF_PTO'">
+                <span class="inline-block text-[10px] font-bold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/60 px-1.5 py-0.5 rounded-md">0.5 PTO</span>
               </template>
               <template x-if="day.status === 'SICK'">
-                <span class="inline-block text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded-md">Sick</span>
+                <span class="inline-block text-[10px] font-bold text-rose-700 dark:text-rose-300 bg-rose-100 dark:bg-rose-900/60 px-1.5 py-0.5 rounded-md">Full Sick</span>
+              </template>
+              <template x-if="day.status === 'HALF_SICK'">
+                <span class="inline-block text-[10px] font-bold text-pink-700 dark:text-pink-300 bg-pink-100 dark:bg-pink-900/60 px-1.5 py-0.5 rounded-md">0.5 Sick</span>
               </template>
               <template x-if="day.status === 'HOLIDAY'">
                 <span class="inline-block text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded-md truncate max-w-full" x-text="day.holidayName || 'Holiday'"></span>
@@ -269,12 +285,9 @@
         let dayOfWeek = dateObj.getDay();
         let targetDate = new Date(dateObj);
 
-        // Saturday -> Friday rule
         if (dayOfWeek === 6) {
           targetDate.setDate(targetDate.getDate() - 1);
-        } 
-        // Sunday -> Monday rule
-        else if (dayOfWeek === 0) {
+        } else if (dayOfWeek === 0) {
           targetDate.setDate(targetDate.getDate() + 1);
         }
 
@@ -284,29 +297,16 @@
         holidays[`${y}-${m}-${d}`] = name;
       };
 
-      // Fixed Date Holidays
       addHoliday(new Date(year, 0, 1), "New Year's Day");
       addHoliday(new Date(year, 5, 19), "Juneteenth");
       addHoliday(new Date(year, 6, 4), "Independence Day");
       addHoliday(new Date(year, 11, 25), "Christmas Day");
 
-      // Nth Day Floating Holidays
-      // MLK Jr Day (3rd Mon in Jan)
       holidays[getNthDayOfMonth(year, 0, 1, 3)] = "MLK Jr. Day";
-      
-      // Presidents' Day (3rd Mon in Feb)
       holidays[getNthDayOfMonth(year, 1, 1, 3)] = "Presidents' Day";
-
-      // Good Friday
       holidays[getGoodFriday(year)] = "Good Friday";
-
-      // Memorial Day (Last Mon in May)
       holidays[getLastDayOfMonth(year, 4, 1)] = "Memorial Day";
-
-      // Labor Day (1st Mon in Sep)
       holidays[getNthDayOfMonth(year, 8, 1, 1)] = "Labor Day";
-
-      // Thanksgiving Day (4th Thu in Nov)
       holidays[getNthDayOfMonth(year, 10, 4, 4)] = "Thanksgiving Day";
 
       return holidays;
@@ -507,9 +507,13 @@
               if (log?.status === 'OFFICE') {
                 actualOfficeDays++;
               } else if (log?.status === 'PTO') {
-                ptoDays++;
+                ptoDays += 1.0;
+              } else if (log?.status === 'HALF_PTO') {
+                ptoDays += 0.5;
               } else if (log?.status === 'SICK') {
-                sickDays++;
+                sickDays += 1.0;
+              } else if (log?.status === 'HALF_SICK') {
+                sickDays += 0.5;
               } else if (log?.status === 'HOLIDAY' || (!log && isDefaultHoliday)) {
                 bankHolidays++;
               }
